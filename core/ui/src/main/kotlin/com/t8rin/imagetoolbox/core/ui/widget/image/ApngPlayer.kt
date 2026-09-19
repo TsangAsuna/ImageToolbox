@@ -47,14 +47,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
+import androidx.documentfile.provider.DocumentFile
+import com.t8rin.imagetoolbox.core.domain.model.MimeType
 import com.t8rin.imagetoolbox.core.resources.Icons
 import com.t8rin.imagetoolbox.core.resources.R
 import com.t8rin.imagetoolbox.core.resources.icons.Download
 import com.t8rin.imagetoolbox.core.resources.icons.Pause
 import com.t8rin.imagetoolbox.core.resources.icons.Play
+import com.t8rin.imagetoolbox.core.resources.icons.SelectAll
 import com.t8rin.imagetoolbox.core.ui.theme.White
-import com.t8rin.imagetoolbox.core.ui.utils.helper.ContextUtils.shareUris
+import com.t8rin.imagetoolbox.core.ui.utils.content_pickers.rememberFileCreator
+import com.t8rin.imagetoolbox.core.ui.utils.content_pickers.rememberFolderPicker
+import com.t8rin.imagetoolbox.core.ui.utils.helper.AppToastHost
 import com.t8rin.imagetoolbox.core.ui.widget.enhanced.EnhancedIconButton
 import com.t8rin.imagetoolbox.core.utils.isApng
 import kotlinx.coroutines.CoroutineScope
@@ -63,7 +67,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import oupson.apng.decoder.ApngDecoder
 import oupson.apng.drawable.ApngDrawable
-import java.io.File
 
 class ApngFrame(
     val bitmap: Bitmap,
@@ -167,27 +170,44 @@ class ApngPlayerState internal constructor(
  */
 @Stable
 class ApngPlayback internal constructor(
-    val player: ApngPlayerState,
+    private val animation: ApngAnimation,
     private val context: Context,
     private val scope: CoroutineScope
 ) {
-    internal fun saveCurrentFrame(filename: String?) {
-        scope.launch {
+    val player: ApngPlayerState = ApngPlayerState(animation)
+
+    /**
+     * Writes the frame currently on screen into the document
+     * picked through the system save dialog.
+     */
+    internal fun saveCurrentFrame(target: Uri) {
+        scope.launch(Dispatchers.IO) {
             runCatching {
-                val name = filename?.substringBeforeLast('.') ?: "apng"
-                val dir = File(context.cacheDir, "apng_frames").apply { mkdirs() }
-                val file = File(dir, "${name}_frame_${player.currentFrameIndex + 1}.png")
-                file.outputStream().use {
-                    player.currentFrame.compress(Bitmap.CompressFormat.PNG, 100, it)
+                context.contentResolver.openOutputStream(target)?.use { out ->
+                    player.currentFrame.compress(Bitmap.CompressFormat.PNG, 100, out)
                 }
-                FileProvider.getUriForFile(
-                    context,
-                    context.getString(R.string.file_provider),
-                    file
-                )
-            }.onSuccess { frameUri ->
-                context.shareUris(listOf(frameUri))
-            }
+            }.onFailure(AppToastHost::handleFileSystemFailure)
+        }
+    }
+
+    /**
+     * Writes every frame of the animation as a PNG into the
+     * picked directory: {name}_frame_{1..n}.png
+     */
+    internal fun exportAllFrames(tree: Uri, filename: String?) {
+        val base = filename?.substringBeforeLast('.') ?: "apng"
+        scope.launch(Dispatchers.IO) {
+            val directory = DocumentFile.fromTreeUri(context, tree)
+            runCatching {
+                animation.frames.forEachIndexed { index, frame ->
+                    directory?.createFile("image/png", "${base}_frame_${index + 1}.png")
+                        ?.let { file ->
+                            context.contentResolver.openOutputStream(file.uri)?.use { out ->
+                                frame.bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                            }
+                        }
+                }
+            }.onFailure(AppToastHost::handleFileSystemFailure)
         }
     }
 }
@@ -206,23 +226,22 @@ fun rememberApngPlayback(uri: Uri?): ApngPlayback? {
         animation = uri?.let { decodeApngAnimation(context, it) }
     }
 
-    val player = remember(animation) { animation?.let(::ApngPlayerState) }
+    val playback = remember(animation, context, scope) {
+        animation?.let { ApngPlayback(it, context, scope) }
+    }
 
-    LaunchedEffect(player, player?.isPlaying, player?.isScrubbing) {
+    val player = playback?.player
+    LaunchedEffect(playback, player?.isPlaying, player?.isScrubbing) {
         val activePlayer = player ?: return@LaunchedEffect
         if (!activePlayer.isPlaying || activePlayer.isScrubbing) return@LaunchedEffect
 
         activePlayer.reanchor(withFrameNanos { it })
         while (true) {
-            withFrameNanos { now ->
-                activePlayer.tick(now)
-            }
+            withFrameNanos(activePlayer::tick)
         }
     }
 
-    return remember(player, context, scope) {
-        player?.let { ApngPlayback(it, context, scope) }
-    }
+    return playback
 }
 
 @Composable
@@ -232,6 +251,13 @@ fun ApngPlayerControlBar(
     modifier: Modifier = Modifier
 ) {
     val player = playback.player
+    val frameSaver = rememberFileCreator(
+        mimeType = MimeType.StaticPng,
+        onSuccess = playback::saveCurrentFrame
+    )
+    val framesExporter = rememberFolderPicker(
+        onSuccess = { playback.exportAllFrames(it, filename) }
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth()
@@ -263,11 +289,24 @@ fun ApngPlayerControlBar(
         )
         Spacer(Modifier.width(4.dp))
         EnhancedIconButton(
-            onClick = { playback.saveCurrentFrame(filename) }
+            onClick = {
+                frameSaver.make(
+                    "${filename?.substringBeforeLast('.') ?: "apng"}_frame_${player.currentFrameIndex + 1}.png"
+                )
+            }
         ) {
             Icon(
                 imageVector = Icons.Rounded.Download,
                 contentDescription = stringResource(R.string.save_current_frame),
+                tint = White
+            )
+        }
+        EnhancedIconButton(
+            onClick = framesExporter::pickFolder
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.SelectAll,
+                contentDescription = stringResource(R.string.export_all_frames),
                 tint = White
             )
         }

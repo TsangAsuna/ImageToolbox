@@ -24,13 +24,19 @@ jobs:
           cache: gradle
 
       - name: Build Market Debug APKs
-        run: bash ./gradlew assembleMarketDebug
+        run: bash ./gradlew assembleMarketBenchmark
 
-      - name: Upload Market Debug APK
+      - name: Upload Market arm64-v8a APK
         uses: actions/upload-artifact@v4
         with:
-          name: Market Debug arm64 APK
-          path: app/build/outputs/apk/market/debug/*arm64-v8a*.apk
+          name: ImageToolbox-market-arm64-v8a
+          path: app/build/outputs/apk/market/benchmark/*arm64-v8a*.apk
+
+      - name: Upload Market armeabi-v7a APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ImageToolbox-market-armeabi-v7a
+          path: app/build/outputs/apk/market/benchmark/*armeabi-v7a*.apk
 
       - name: Delete Market Debug APKs
         run: rm -rf app/build/outputs/apk/market
