@@ -46,6 +46,9 @@ android {
 
     androidResources {
         generateLocaleConfig = true
+        if (providers.gradleProperty("imageToolbox.slimLocales").isPresent) {
+            localeFilters.addAll(listOf("en", "zh-rCN"))
+        }
     }
 
     flavorDimensions += "app"
