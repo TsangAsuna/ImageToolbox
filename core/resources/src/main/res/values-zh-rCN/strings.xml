@@ -1867,7 +1867,7 @@
     <string name="cannot_open_uri">无法打开URI“%1$s”</string>
     <string name="snowfall_mode">降雪模式</string>
     <string name="enabled">启用</string>
-    <string name="border_frame">边框框架</string>
+    <string name="border_frame">边框</string>
     <string name="glitch_variant">故障变体</string>
     <string name="channel_shift">通道偏移</string>
     <string name="max_offset">最大偏移量</string>
@@ -2099,7 +2099,7 @@
     <string name="model_nafnet_deblurring">消除照片中的模糊/噪点和抖动。通用但最适合照片。</string>
     <string name="model_swin2sr_x4_bsrgan_psnr">使用 Swin2SR 转换器恢复低质量图像，并针对 BSRGAN 退化进行了优化。非常适合修复严重的压缩伪影并以 4 倍比例增强细节。</string>
     <string name="model_bsrgan_swinir_m_x4_gan">使用经过 BSRGAN 退化训练的 SwinIR 变压器进行 4 倍升级。使用 GAN 在照片和复杂场景中获得更清晰的纹理和更自然的细节。</string>
-    <string name="path">小路</string>
+    <string name="path">路径</string>
     <string name="merge_pdf">合并PDF</string>
     <string name="merge_pdf_sub">将多个PDF文件合并为一个文档</string>
     <string name="files_order">文件顺序</string>
@@ -2211,7 +2211,7 @@
     <string name="annotation_file_attachment">文件附件</string>
     <string name="annotation_line">线</string>
     <string name="annotation_popup">弹出窗口</string>
-    <string name="annotation_stamp">邮票</string>
+    <string name="annotation_stamp">印章</string>
     <string name="annotation_shapes">形状</string>
     <string name="annotation_text">文字注释</string>
     <string name="annotation_text_markup">文本标记</string>
@@ -2581,7 +2581,7 @@
     <string name="help_tip_filenames_page_title">让出口更容易找到</string>
     <string name="help_tip_filenames_description">良好的文件名模式有助于对批次进行排序并防止意外覆盖。当导出返回到源文件夹时，文件名设置特别有用，因为相似的名称很快就会变得令人困惑。</string>
     <string name="help_tip_filenames_step_1">在“设置”中设置文件名前缀、后缀、时间戳、原始名称、预设信息或序列选项。</string>
-    <string name="help_tip_filenames_step_2">对顺序重要的批次（例如页面、框架或拼贴画）使用序列号。</string>
+    <string name="help_tip_filenames_step_2">对顺序重要的批次（例如页面、帧或拼贴）使用序列号。</string>
     <string name="help_tip_filenames_step_3">仅当您确定替换现有文件对于当前文件夹是安全的时才启用覆盖。</string>
     <string name="help_tip_overwrite_files_title">覆盖文件</string>
     <string name="help_tip_overwrite_files_subtitle">仅当您的工作流程故意具有破坏性时，才将输出替换为匹配的名称</string>
@@ -2651,7 +2651,7 @@
     <string name="help_tip_document_scanner_page_title">捕获可读页面</string>
     <string name="help_tip_document_scanner_description">文档扫描在平面页面、良好的照明和正确的透视下效果最佳。在 OCR 或 PDF 导出之前进行干净扫描可以节省时间，因为文本识别和压缩都取决于页面质量。</string>
     <string name="help_tip_document_scanner_step_1">将文档放置在光线充足且阴影最少的对比表面上。</string>
-    <string name="help_tip_document_scanner_step_2">手动调整检测到的角或裁剪，使页面干净地填充框架。</string>
+    <string name="help_tip_document_scanner_step_2">手动调整检测到的角点或裁剪，使页面干净地填满画面。</string>
     <string name="help_tip_document_scanner_step_3">导出为图像或PDF，然后运行OCR（如果您需要可选文本）。</string>
     <string name="help_tip_pdf_protection_title">保护或解锁 PDF 文件</string>
     <string name="help_tip_pdf_protection_subtitle">谨慎使用密码并尽可能保留可编辑的源副本</string>
@@ -2699,7 +2699,7 @@
     <string name="help_tip_qr_code_subtitle">从相机输入或保存的图像（如果可用）中读取 QR 内容</string>
     <string name="help_tip_qr_code_page_title">安全地读取代码</string>
     <string name="help_tip_qr_code_description">QR 码可以包含链接、Wi-Fi 数据、联系人、文本或其他有效负载。</string>
-    <string name="help_tip_qr_code_step_1">打开扫描二维码并保持代码清晰、平整并完全位于框架内。</string>
+    <string name="help_tip_qr_code_step_1">打开扫描二维码并保持代码清晰、平整并完全位于取景框内。</string>
     <string name="help_tip_qr_code_step_2">在打开链接或复制敏感数据之前查看解码的内容。</string>
     <string name="help_tip_qr_code_step_3">如果扫描失败，请改善照明、裁剪代码或尝试更高分辨率的源图像。</string>
     <string name="help_tip_base64_checksum_title">使用 Base64 和校验和</string>
@@ -2941,7 +2941,7 @@
     <string name="help_tip_load_net_image_page_title">有意使用网络图像</string>
     <string name="help_tip_load_net_image_description">Web 图像加载从提供的 URL 解析图像源，预览第一个可用图像，并允许您保存或共享选定的解析图像。某些网站使用临时的、受保护的或脚本生成的链接，因此在浏览器中运行的页面可能仍不会返回可用的图像。</string>
     <string name="help_tip_load_net_image_step_1">粘贴直接图像 URL 或页面 URL，然后等待解析的图像列表出现。</string>
-    <string name="help_tip_load_net_image_step_2">当页面包含多个图像并且您只需要其中一些图像时，请使用框架或选择控件。</string>
+    <string name="help_tip_load_net_image_step_2">当页面包含多个图像并且您只需要其中一些图像时，请使用图像框或选择控件。</string>
     <string name="help_tip_load_net_image_step_3">如果没有加载，请尝试直接图像链接或先通过浏览器下载；该网站可能会阻止解析或使用私人链接。</string>
     <string name="help_tip_resize_type_title">选择调整大小类型</string>
     <string name="help_tip_resize_type_subtitle">在将图像强制转换为新尺寸之前了解显式、灵活、裁剪和适合</string>
@@ -2949,7 +2949,7 @@
     <string name="help_tip_resize_type_description">调整大小类型决定当请求的宽度和高度与原始宽高比不匹配时会发生什么。这是拉伸像素、保留比例、裁剪额外区域或添加背景画布之间的区别。</string>
     <string name="help_tip_resize_type_step_1">仅当失真可接受或源已经具有与目标相同的宽高比时才使用显式。</string>
     <string name="help_tip_resize_type_step_2">使用“灵活”可以通过从重要一侧调整大小来保持比例，特别是对于照片和混合批次。</string>
-    <string name="help_tip_resize_type_step_3">对于没有边框的严格框架，请使用“裁剪”；当整个图像必须在固定画布内保持可见时，请使用“适合”。</string>
+    <string name="help_tip_resize_type_step_3">需要无边框的严格裁剪时，请使用“裁剪”；当整张图像必须在固定画布内保持可见时，请使用“适合”。</string>
     <string name="help_tip_image_scale_mode_title">选择图像缩放模式</string>
     <string name="help_tip_image_scale_mode_subtitle">选择控制锐度、平滑度、速度和边缘伪影的重采样滤波器</string>
     <string name="help_tip_image_scale_mode_page_title">调整大小，不会意外变软</string>
@@ -2976,7 +2976,7 @@
     <string name="help_tip_aspect_ratio_targets_page_title">调整大小之前匹配形状</string>
     <string name="help_tip_aspect_ratio_targets_description">宽度和高度只是调整大小目标的一半。宽高比决定图像是否可以自然地适合、需要裁剪或需要在其周围放置画布。首先检查形状可以防止最令人惊讶的调整大小结果。</string>
     <string name="help_tip_aspect_ratio_targets_step_1">在选择“显式”、“裁剪”或“适合”之前，将源形状与目标形状进行比较。</string>
-    <string name="help_tip_aspect_ratio_targets_step_2">当拍摄对象可能失去额外的背景并且目的地需要严格的框架时，请先裁剪。</string>
+    <string name="help_tip_aspect_ratio_targets_step_2">当主体周围可能有多余背景、且目标位置需要严格边框时，请先裁剪。</string>
     <string name="help_tip_aspect_ratio_targets_step_3">当原始图像的每个部分都必须保持可见时，请使用“适合”或“灵活”。</string>
     <string name="help_tip_upscale_vs_resize_title">高档或普通调整大小</string>
     <string name="help_tip_upscale_vs_resize_subtitle">了解何时添加像素需要人工智能以及何时简单缩放就足够了</string>
@@ -3190,7 +3190,7 @@
     <string name="search_keywords_single_edit">编辑器编辑照片图片修饰调整</string>
     <string name="search_keywords_resize_and_convert">调整大小 转换比例 分辨率 尺寸 宽度 高度 jpg jpeg png webp 压缩</string>
     <string name="search_keywords_weight_resize">压缩大小 重量 字节 mb kb 减少质量 优化</string>
-    <string name="search_keywords_crop">作物修剪切割纵横比</string>
+    <string name="search_keywords_crop">裁剪 修剪 切割 纵横比</string>
     <string name="search_keywords_filter">滤镜效果 色彩校正 调整 lut mask</string>
     <string name="search_keywords_draw">绘制油漆刷铅笔注释标记</string>
     <string name="search_keywords_cipher">密码 加密 解密 密码 秘密</string>
@@ -3709,7 +3709,7 @@
     <string name="boomerang">回旋镖</string>
     <string name="boomerang_sub">向前播放然后向后播放</string>
     <string name="normalize_gif_frames">规范化帧大小</string>
-    <string name="normalize_gif_frames_sub">缩放框架以适合最大的剪辑；关闭以保留其原始比例</string>
+    <string name="normalize_gif_frames_sub">缩放帧以适应最大的剪辑；关闭以保留其原始比例</string>
     <string name="delay_between_clips">剪辑之间的延迟（毫秒）</string>
     <string name="folder_picker">文件夹</string>
     <string name="folder_picker_sub">选择文件夹及其子文件夹中的所有图像</string>
@@ -3958,7 +3958,7 @@
     <string name="duplicate_scan_exact_and_similar">完全相同且相似</string>
     <string name="no_exact_duplicates_found_sub">尝试添加更多图像或包含视觉上相似的图像</string>
     <string name="unable_to_decode_image">无法解码 %1$s</string>
-    <string name="crop_overlay_draggable">可移动作物区域</string>
+    <string name="crop_overlay_draggable">可移动裁剪区域</string>
     <string name="implementation_sub_v2">默认情况下使用具有随机 12 字节随机数的 AES-256-GCM。每个加密文件都有一个版本控制标头、一个唯一的随机盐，以及使用 PBKDF2-HMAC-SHA256 进行 210,000 次迭代从密码派生的密钥。您还可以选择其他可用的算法。</string>
     <string name="encrypted_file_detected">检测到加密文件</string>
     <string name="encrypted_file_detected_sub">自动从文件中读取加密算法和参数</string>
@@ -4018,7 +4018,7 @@
     <string name="command">命令</string>
     <string name="gmic_filter_alpha_sharpen">阿尔法锐化</string>
     <string name="gmic_filter_analog_damage">模拟损坏</string>
-    <string name="gmic_filter_blurred_frame">模糊的框架</string>
+    <string name="gmic_filter_blurred_frame">模糊边框</string>
     <string name="gmic_filter_breaks">休息时间</string>
     <string name="gmic_filter_brushify">刷化</string>
     <string name="gmic_filter_charcoal">木炭</string>
@@ -4032,7 +4032,7 @@
     <string name="gmic_filter_crease">折痕</string>
     <string name="gmic_filter_crt_phosphors">CRT荧光粉</string>
     <string name="gmic_filter_crt_scanlines">CRT 扫描线</string>
-    <string name="gmic_filter_cube_frame">立方体框架</string>
+    <string name="gmic_filter_cube_frame">立方体边框</string>
     <string name="gmic_filter_cubism">立体主义</string>
     <string name="gmic_filter_cutout">剪下</string>
     <string name="gmic_filter_deblur">去模糊</string>
@@ -4054,7 +4054,7 @@
     <string name="gmic_filter_fractalize">分形化</string>
     <string name="gmic_filter_freaky_details">怪异的细节</string>
     <string name="gmic_filter_frosted_glass">磨砂玻璃</string>
-    <string name="gmic_filter_fuzzy_frame">模糊框架</string>
+    <string name="gmic_filter_fuzzy_frame">毛边边框</string>
     <string name="gmic_filter_ghost">鬼</string>
     <string name="gmic_filter_gold_meinel_sharpen">金梅内尔磨刀器</string>
     <string name="gmic_filter_graphic_novel">图画小说</string>
@@ -4145,7 +4145,7 @@
     <string name="gmic_param_border_opacity">边框不透明度</string>
     <string name="gmic_param_border_outline">边框轮廓</string>
     <string name="gmic_param_boundary">边界</string>
-    <string name="gmic_param_canvas">帆布</string>
+    <string name="gmic_param_canvas">画布</string>
     <string name="gmic_param_chalk_highlights">粉笔亮点</string>
     <string name="gmic_param_channel">渠道</string>
     <string name="gmic_param_coarse_gain">粗调增益</string>
@@ -4458,7 +4458,7 @@
     <string name="tag_raw_developing_software">RAW冲洗软件</string>
     <string name="tag_shading_correction">阴影校正</string>
     <string name="image_info">图像信息</string>
-    <string name="mime_type">默剧类型</string>
+    <string name="mime_type">文件类型</string>
     <string name="help_tip_gmic_filters_title">探索 G\'MIC 过滤器</string>
     <string name="help_tip_gmic_filters_subtitle">将大型效果库转变为精心编辑，从微妙的清理到大胆的风格化</string>
     <string name="help_tip_gmic_filters_page_title">从图像的工作开始</string>
@@ -5099,7 +5099,7 @@
     <string name="code_preview_background_sub">在代码窗口后面绘制渐变，或将其关闭以透明导出</string>
     <string name="code_preview_gradient_start">梯度开始</string>
     <string name="code_preview_gradient_end">渐变结束</string>
-    <string name="code_preview_outer_padding">帆布衬垫</string>
+    <string name="code_preview_outer_padding">画布内边距</string>
     <string name="code_preview_inner_padding">代码填充</string>
     <string name="code_preview_filename">文件名</string>
     <string name="code_preview_window_controls">窗口控制</string>
@@ -5110,7 +5110,7 @@
     <string name="code_preview_line_numbers_sub">在源代码旁边添加逻辑行号</string>
     <string name="code_preview_wrap_lines">换行长线</string>
     <string name="code_preview_wrap_lines_sub">将代码包裹到窗口宽度而不是扩展图像</string>
-    <string name="code_preview_canvas_corners">帆布角</string>
+    <string name="code_preview_canvas_corners">画布圆角</string>
     <string name="code_preview_code_corners">代码窗口角</string>
     <string name="code_preview_card_shadow">代码窗口阴影</string>
     <string name="code_preview_card_shadow_sub">在代码窗口后面绘制可自定义的阴影</string>

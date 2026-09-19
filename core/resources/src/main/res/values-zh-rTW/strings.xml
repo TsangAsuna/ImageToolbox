@@ -2101,7 +2101,7 @@
     <string name="model_nafnet_deblurring">消除照片中的模糊/噪點和抖動。通用但最適合照片。</string>
     <string name="model_swin2sr_x4_bsrgan_psnr">使用 Swin2SR 轉換器恢復低品質圖像，並針對 BSRGAN 退化進行了最佳化。非常適合修復嚴重的壓縮偽影並以 4 倍比例增強細節。</string>
     <string name="model_bsrgan_swinir_m_x4_gan">使用經過 BSRGAN 退化訓練的 SwinIR 變壓器進行 4 倍升級。使用 GAN 在照片和複雜場景中獲得更清晰的紋理和更自然的細節。</string>
-    <string name="path">小路</string>
+    <string name="path">路徑</string>
     <string name="merge_pdf">合併PDF</string>
     <string name="merge_pdf_sub">將多個 PDF 檔案合併為一個文件</string>
     <string name="files_order">檔案順序</string>
@@ -4460,7 +4460,7 @@
     <string name="tag_raw_developing_software">RAW沖洗軟體</string>
     <string name="tag_shading_correction">陰影校正</string>
     <string name="image_info">影像資訊</string>
-    <string name="mime_type">默劇類型</string>
+    <string name="mime_type">檔案類型</string>
     <string name="help_tip_gmic_filters_title">探索 G\'MIC 過濾器</string>
     <string name="help_tip_gmic_filters_subtitle">將大型效果庫轉變為精心編輯，從微妙的清理到大膽的風格化</string>
     <string name="help_tip_gmic_filters_page_title">從影像的工作開始</string>
