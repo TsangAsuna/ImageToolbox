@@ -36,26 +36,34 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.t8rin.imagetoolbox.core.resources.R
+import androidx.core.content.FileProvider
 import com.t8rin.imagetoolbox.core.resources.Icons
+import com.t8rin.imagetoolbox.core.resources.R
 import com.t8rin.imagetoolbox.core.resources.icons.Download
 import com.t8rin.imagetoolbox.core.resources.icons.Pause
 import com.t8rin.imagetoolbox.core.resources.icons.Play
 import com.t8rin.imagetoolbox.core.ui.theme.White
+import com.t8rin.imagetoolbox.core.ui.utils.helper.ContextUtils.shareUris
 import com.t8rin.imagetoolbox.core.ui.widget.enhanced.EnhancedIconButton
 import com.t8rin.imagetoolbox.core.utils.isApng
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import oupson.apng.decoder.ApngDecoder
 import oupson.apng.drawable.ApngDrawable
+import java.io.File
 
 class ApngFrame(
     val bitmap: Bitmap,
@@ -78,7 +86,7 @@ class ApngAnimation(
     }
 }
 
-suspend fun decodeApngAnimation(
+private suspend fun decodeApngAnimation(
     context: Context,
     uri: Uri
 ): ApngAnimation? = withContext(Dispatchers.IO) {
@@ -88,19 +96,14 @@ suspend fun decodeApngAnimation(
         val drawable = ApngDecoder(context, uri, ApngDecoder.Config())
             .decodeApng(context).getOrNull() as? ApngDrawable ?: return@runCatching null
 
-        val frameCount = drawable.numberOfFrames
-        if (frameCount <= 0) return@runCatching null
-
-        ApngAnimation(
-            frames = (0 until frameCount).mapNotNull { index ->
-                (drawable.getFrame(index) as? BitmapDrawable)?.let {
-                    ApngFrame(
-                        bitmap = it.bitmap,
-                        durationMs = drawable.getDuration(index).toLong().coerceAtLeast(1L)
-                    )
-                }
-            }.takeIf { it.isNotEmpty() } ?: return@runCatching null
-        )
+        (0 until drawable.numberOfFrames).mapNotNull { index ->
+            (drawable.getFrame(index) as? BitmapDrawable)?.let {
+                ApngFrame(
+                    bitmap = it.bitmap,
+                    durationMs = drawable.getDuration(index).toLong().coerceAtLeast(1L)
+                )
+            }
+        }.takeIf { it.isNotEmpty() }?.let(::ApngAnimation)
     }.getOrNull()
 }
 
@@ -131,13 +134,12 @@ class ApngPlayerState internal constructor(
 
     fun scrubTo(fraction: Float) {
         isScrubbing = true
-        val total = animation.totalDurationMs
-        val position = (fraction.coerceIn(0f, 1f) * total).toLong()
-            .coerceIn(0L, total - 1L)
+        val position = (fraction.coerceIn(0f, 1f) * animation.totalDurationMs).toLong()
+            .coerceIn(0L, animation.totalDurationMs - 1L)
         playedMs = position
         anchorNanos = 0L
         currentFrameIndex = animation.frameIndexAt(position)
-        progress = position.toFloat() / total
+        progress = position.toFloat() / animation.totalDurationMs
     }
 
     private var playedMs = 0L
@@ -158,28 +160,78 @@ class ApngPlayerState internal constructor(
     }
 }
 
-@Composable
-fun ApngPlayerEffect(player: ApngPlayerState?) {
-    if (player == null) return
-
-    LaunchedEffect(player, player.isPlaying, player.isScrubbing) {
-        if (!player.isPlaying || player.isScrubbing) return@LaunchedEffect
-
-        player.reanchor(withFrameNanos { it })
-        while (true) {
-            withFrameNanos { now ->
-                player.tick(now)
+/**
+ * Everything the image viewer needs to play an APNG: playback state,
+ * the frame-driving effect and frame saving. Hosts that only show
+ * still images simply never touch this class.
+ */
+@Stable
+class ApngPlayback internal constructor(
+    val player: ApngPlayerState,
+    private val context: Context,
+    private val scope: CoroutineScope
+) {
+    internal fun saveCurrentFrame(filename: String?) {
+        scope.launch {
+            runCatching {
+                val name = filename?.substringBeforeLast('.') ?: "apng"
+                val dir = File(context.cacheDir, "apng_frames").apply { mkdirs() }
+                val file = File(dir, "${name}_frame_${player.currentFrameIndex + 1}.png")
+                file.outputStream().use {
+                    player.currentFrame.compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+                FileProvider.getUriForFile(
+                    context,
+                    context.getString(R.string.file_provider),
+                    file
+                )
+            }.onSuccess { frameUri ->
+                context.shareUris(listOf(frameUri))
             }
         }
     }
 }
 
+/**
+ * Prepares APNG playback for the given uri in a single call.
+ * Returns null for still images, keeping the host code linear.
+ */
+@Composable
+fun rememberApngPlayback(uri: Uri?): ApngPlayback? {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var animation by remember { mutableStateOf<ApngAnimation?>(null) }
+    LaunchedEffect(uri) {
+        animation = uri?.let { decodeApngAnimation(context, it) }
+    }
+
+    val player = remember(animation) { animation?.let(::ApngPlayerState) }
+
+    LaunchedEffect(player, player?.isPlaying, player?.isScrubbing) {
+        val activePlayer = player ?: return@LaunchedEffect
+        if (!activePlayer.isPlaying || activePlayer.isScrubbing) return@LaunchedEffect
+
+        activePlayer.reanchor(withFrameNanos { it })
+        while (true) {
+            withFrameNanos { now ->
+                activePlayer.tick(now)
+            }
+        }
+    }
+
+    return remember(player, context, scope) {
+        player?.let { ApngPlayback(it, context, scope) }
+    }
+}
+
 @Composable
 fun ApngPlayerControlBar(
-    player: ApngPlayerState,
-    onSaveFrame: () -> Unit,
+    playback: ApngPlayback,
+    filename: String?,
     modifier: Modifier = Modifier
 ) {
+    val player = playback.player
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.fillMaxWidth()
@@ -211,7 +263,7 @@ fun ApngPlayerControlBar(
         )
         Spacer(Modifier.width(4.dp))
         EnhancedIconButton(
-            onClick = onSaveFrame
+            onClick = { playback.saveCurrentFrame(filename) }
         ) {
             Icon(
                 imageVector = Icons.Rounded.Download,

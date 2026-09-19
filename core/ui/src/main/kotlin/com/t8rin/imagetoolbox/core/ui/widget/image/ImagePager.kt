@@ -17,7 +17,6 @@
 
 package com.t8rin.imagetoolbox.core.ui.widget.image
 
-import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
@@ -67,7 +66,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,13 +75,11 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import com.t8rin.imagetoolbox.core.domain.utils.humanFileSize
 import com.t8rin.imagetoolbox.core.resources.Icons
 import com.t8rin.imagetoolbox.core.resources.R
@@ -98,7 +94,6 @@ import com.t8rin.imagetoolbox.core.ui.theme.onPrimaryContainerFixed
 import com.t8rin.imagetoolbox.core.ui.theme.primaryContainerFixed
 import com.t8rin.imagetoolbox.core.ui.theme.takeColorFromScheme
 import com.t8rin.imagetoolbox.core.ui.utils.helper.ContextUtils.rememberFilename
-import com.t8rin.imagetoolbox.core.ui.utils.helper.ContextUtils.shareUris
 import com.t8rin.imagetoolbox.core.ui.utils.helper.ImageUtils.rememberFileSize
 import com.t8rin.imagetoolbox.core.ui.utils.helper.ImageUtils.rememberHumanFileSize
 import com.t8rin.imagetoolbox.core.ui.utils.helper.PredictiveBackObserver
@@ -114,14 +109,10 @@ import com.t8rin.imagetoolbox.core.ui.widget.modifier.toShape
 import com.t8rin.imagetoolbox.core.ui.widget.modifier.withLayoutCorners
 import com.t8rin.imagetoolbox.core.ui.widget.sheets.ProcessImagesPreferenceSheet
 import com.t8rin.modalsheet.FullscreenPopup
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.toggleScale
 import net.engawapg.lib.zoomable.zoomable
-import java.io.File
 import kotlin.math.roundToInt
 
 
@@ -198,15 +189,9 @@ fun ImagePager(
                 )
             }
 
-            val context = LocalContext.current
-            val currentPagerUri = uris?.getOrNull(pagerState.currentPage)
-            var apngAnimation by remember { mutableStateOf<ApngAnimation?>(null) }
-            LaunchedEffect(currentPagerUri) {
-                apngAnimation = currentPagerUri?.let { decodeApngAnimation(context, it) }
-            }
-            val apngPlayer = remember(apngAnimation) { apngAnimation?.let(::ApngPlayerState) }
-            ApngPlayerEffect(apngPlayer)
-            val scope = rememberCoroutineScope()
+            val apngPlayback = rememberApngPlayback(
+                uri = uris?.getOrNull(pagerState.currentPage)
+            )
             val progress by remember(draggableState) {
                 derivedStateOf {
                     draggableState.progress(
@@ -247,15 +232,13 @@ fun ImagePager(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         val zoomState = rememberZoomState(20f)
-                        val pageUri = uris?.getOrNull(page)
-                        val currentFrameModel = if (page == pagerState.currentPage) {
-                            apngPlayer?.currentFrame?.asImageBitmap()
-                        } else {
-                            null
-                        }
                         Picture(
                             showTransparencyChecker = false,
-                            model = currentFrameModel ?: pageUri,
+                            model = apngPlayback
+                                ?.takeIf { page == pagerState.currentPage }
+                                ?.player
+                                ?.currentFrame
+                                ?.asImageBitmap() ?: uris?.getOrNull(page),
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clipToBounds()
@@ -334,27 +317,6 @@ fun ImagePager(
                 }
                 val selectedUriFilename = selectedUri?.let { rememberFilename(it) }
                 val selectedUriFileSize = selectedUri?.let { rememberFileSize(it) }
-                val saveCurrentFrame: (ApngPlayerState) -> Unit = { player ->
-                    scope.launch {
-                        runCatching {
-                            val frame = player.currentFrame
-                            val name = selectedUriFilename?.substringBeforeLast('.')
-                                ?: "apng"
-                            val dir = File(context.cacheDir, "apng_frames").apply { mkdirs() }
-                            val file = File(dir, "${name}_frame_${player.currentFrameIndex + 1}.png")
-                            file.outputStream().use {
-                                frame.compress(Bitmap.CompressFormat.PNG, 100, it)
-                            }
-                            FileProvider.getUriForFile(
-                                context,
-                                context.getString(R.string.file_provider),
-                                file
-                            )
-                        }.onSuccess { frameUri ->
-                            context.shareUris(listOf(frameUri))
-                        }
-                    }
-                }
                 val showBottomHist = pagerState.currentPage !in imageErrorPages
                 val showBottomBar by remember(draggableState, showBottomHist, hideControls) {
                     derivedStateOf {
@@ -455,11 +417,11 @@ fun ImagePager(
                             )
                             .padding(horizontal = 16.dp)
                     ) {
-                        apngPlayer?.let { player ->
+                        apngPlayback?.let { playback ->
                             Spacer(Modifier.height(12.dp))
                             ApngPlayerControlBar(
-                                player = player,
-                                onSaveFrame = { saveCurrentFrame(player) }
+                                playback = playback,
+                                filename = selectedUriFilename
                             )
                         }
                         Row(
