@@ -21,6 +21,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
+import java.io.BufferedOutputStream
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -63,10 +64,17 @@ import com.t8rin.imagetoolbox.core.ui.widget.enhanced.EnhancedIconButton
 import com.t8rin.imagetoolbox.core.utils.isApng
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import oupson.apng.decoder.ApngDecoder
 import oupson.apng.drawable.ApngDrawable
+
+private const val STREAM_BUFFER_BYTES = 1 shl 16
 
 class ApngFrame(
     val bitmap: Bitmap,
@@ -174,6 +182,7 @@ class ApngPlayback internal constructor(
     private val context: Context,
     private val scope: CoroutineScope
 ) {
+    private val exportSlots = Semaphore(permits = 4)
     val player: ApngPlayerState = ApngPlayerState(animation)
 
     /**
@@ -192,22 +201,39 @@ class ApngPlayback internal constructor(
 
     /**
      * Writes every frame of the animation as a PNG into the
-     * picked directory: {name}_frame_{1..n}.png
+     * picked directory: {name}_frame_{1..n}.png. Frames are
+     * encoded in parallel, PNG compression being CPU bound.
      */
     internal fun exportAllFrames(tree: Uri, filename: String?) {
         val base = filename?.substringBeforeLast('.') ?: "apng"
+        val directory = DocumentFile.fromTreeUri(context, tree)
         scope.launch(Dispatchers.IO) {
-            val directory = DocumentFile.fromTreeUri(context, tree)
             runCatching {
-                animation.frames.forEachIndexed { index, frame ->
-                    directory?.createFile("image/png", "${base}_frame_${index + 1}.png")
-                        ?.let { file ->
-                            context.contentResolver.openOutputStream(file.uri)?.use { out ->
-                                frame.bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                coroutineScope {
+                    animation.frames.mapIndexed { index, frame ->
+                        async {
+                            exportSlots.withPermit {
+                                writeFrame(directory, frame, index, base)
                             }
                         }
+                    }.awaitAll()
                 }
             }.onFailure(AppToastHost::handleFileSystemFailure)
+        }
+    }
+
+    private suspend fun writeFrame(
+        directory: DocumentFile?,
+        frame: ApngFrame,
+        index: Int,
+        base: String
+    ) {
+        directory?.createFile("image/png", "${base}_frame_${index + 1}.png")?.let { file ->
+            context.contentResolver.openOutputStream(file.uri)?.let { raw ->
+                BufferedOutputStream(raw, STREAM_BUFFER_BYTES).use { out ->
+                    frame.bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                }
+            }
         }
     }
 }
