@@ -1,0 +1,223 @@
+/*
+ * ImageToolbox is an image editor for android
+ * Copyright (c) 2026 T8RIN (Malik Mukhametzyanov)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * You should have received a copy of the Apache License
+ * along with this program.  If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
+ */
+
+package com.t8rin.imagetoolbox.core.ui.widget.image
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.drawable.BitmapDrawable
+import android.net.Uri
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.t8rin.imagetoolbox.core.resources.R
+import com.t8rin.imagetoolbox.core.resources.Icons
+import com.t8rin.imagetoolbox.core.resources.icons.Download
+import com.t8rin.imagetoolbox.core.resources.icons.Pause
+import com.t8rin.imagetoolbox.core.resources.icons.Play
+import com.t8rin.imagetoolbox.core.ui.theme.White
+import com.t8rin.imagetoolbox.core.ui.widget.enhanced.EnhancedIconButton
+import com.t8rin.imagetoolbox.core.utils.isApng
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import oupson.apng.decoder.ApngDecoder
+import oupson.apng.drawable.ApngDrawable
+
+class ApngFrame(
+    val bitmap: Bitmap,
+    val durationMs: Long
+)
+
+class ApngAnimation(
+    val frames: List<ApngFrame>
+) {
+    val totalDurationMs: Long = frames.sumOf { it.durationMs }.coerceAtLeast(1L)
+
+    fun frameIndexAt(positionMs: Long): Int {
+        if (frames.isEmpty()) return 0
+        var accumulator = 0L
+        frames.forEachIndexed { index, frame ->
+            accumulator += frame.durationMs
+            if (positionMs < accumulator) return index
+        }
+        return frames.lastIndex
+    }
+}
+
+suspend fun decodeApngAnimation(
+    context: Context,
+    uri: Uri
+): ApngAnimation? = withContext(Dispatchers.IO) {
+    runCatching {
+        if (!uri.isApng()) return@runCatching null
+
+        val drawable = ApngDecoder(context, uri, ApngDecoder.Config())
+            .decodeApng(context).getOrNull() as? ApngDrawable ?: return@runCatching null
+
+        val frameCount = drawable.numberOfFrames
+        if (frameCount <= 0) return@runCatching null
+
+        ApngAnimation(
+            frames = (0 until frameCount).mapNotNull { index ->
+                (drawable.getFrame(index) as? BitmapDrawable)?.let {
+                    ApngFrame(
+                        bitmap = it.bitmap,
+                        durationMs = drawable.getDuration(index).toLong().coerceAtLeast(1L)
+                    )
+                }
+            }.takeIf { it.isNotEmpty() } ?: return@runCatching null
+        )
+    }.getOrNull()
+}
+
+@Stable
+class ApngPlayerState internal constructor(
+    private val animation: ApngAnimation
+) {
+    var currentFrameIndex by mutableIntStateOf(0)
+        private set
+
+    var progress by mutableFloatStateOf(0f)
+        private set
+
+    var isPlaying by mutableStateOf(true)
+        private set
+
+    var isScrubbing by mutableStateOf(false)
+        internal set
+
+    val frameCount: Int get() = animation.frames.size
+
+    val currentFrame: Bitmap
+        get() = animation.frames[currentFrameIndex.coerceIn(0, frameCount - 1)].bitmap
+
+    fun togglePlay() {
+        isPlaying = !isPlaying
+    }
+
+    fun scrubTo(fraction: Float) {
+        isScrubbing = true
+        val total = animation.totalDurationMs
+        val position = (fraction.coerceIn(0f, 1f) * total).toLong()
+            .coerceIn(0L, total - 1L)
+        playedMs = position
+        anchorNanos = 0L
+        currentFrameIndex = animation.frameIndexAt(position)
+        progress = position.toFloat() / total
+    }
+
+    private var playedMs = 0L
+    private var anchorNanos = 0L
+
+    internal fun reanchor(nowNanos: Long) {
+        anchorNanos = nowNanos
+    }
+
+    internal fun tick(nowNanos: Long) {
+        if (anchorNanos != 0L) {
+            playedMs += (nowNanos - anchorNanos) / 1_000_000L
+        }
+        anchorNanos = nowNanos
+        val position = playedMs % animation.totalDurationMs
+        currentFrameIndex = animation.frameIndexAt(position)
+        progress = position.toFloat() / animation.totalDurationMs
+    }
+}
+
+@Composable
+fun ApngPlayerEffect(player: ApngPlayerState?) {
+    if (player == null) return
+
+    LaunchedEffect(player, player.isPlaying, player.isScrubbing) {
+        if (!player.isPlaying || player.isScrubbing) return@LaunchedEffect
+
+        player.reanchor(withFrameNanos { it })
+        while (true) {
+            withFrameNanos { now ->
+                player.tick(now)
+            }
+        }
+    }
+}
+
+@Composable
+fun ApngPlayerControlBar(
+    player: ApngPlayerState,
+    onSaveFrame: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        EnhancedIconButton(
+            onClick = player::togglePlay
+        ) {
+            Icon(
+                imageVector = if (player.isPlaying) Icons.Rounded.Pause else Icons.Rounded.Play,
+                contentDescription = stringResource(
+                    if (player.isPlaying) R.string.pause else R.string.play
+                ),
+                tint = White
+            )
+        }
+        Slider(
+            value = player.progress,
+            onValueChange = player::scrubTo,
+            onValueChangeFinished = { player.isScrubbing = false },
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = "${player.currentFrameIndex + 1}/${player.frameCount}",
+            color = White,
+            style = MaterialTheme.typography.labelLarge,
+            fontSize = 12.5.sp,
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.width(52.dp)
+        )
+        Spacer(Modifier.width(4.dp))
+        EnhancedIconButton(
+            onClick = onSaveFrame
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Download,
+                contentDescription = stringResource(R.string.save_current_frame),
+                tint = White
+            )
+        }
+    }
+}
